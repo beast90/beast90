@@ -1,0 +1,5 @@
+{
+  "budget": {"skill_lines": 200, "skill_bytes": 16000, "ref_lines": 200},
+  "external_files": ["x.md", "qa-checklist.md", "writing.md"],
+  "pointer_files": ["SKILL.md"]
+}

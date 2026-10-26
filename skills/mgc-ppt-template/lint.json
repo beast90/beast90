@@ -1,0 +1,191 @@
+{
+  "budget": {
+    "skill_lines": 260,
+    "skill_bytes": 24000,
+    "ref_lines": 300
+  },
+  "dup_threshold": 0.6,
+  "dup_min_chars": 28,
+  "history_files": [
+    "CHANGELOG.md"
+  ],
+  "external_files": [
+    "validate.py",
+    "soffice.py"
+  ],
+  "pointer_files": [
+    "SKILL.md",
+    "references/qa-checklist.md"
+  ],
+  "facts": [
+    {
+      "label": "줄바꿈 폭 보정",
+      "pattern": "줄바꿈[^\\n]{0,20}?폭 보정\\s*(\\d\\.\\d+)",
+      "expect": "0.82"
+    },
+    {
+      "label": "핵심 한 줄 최저 위치",
+      "pattern": "핵심 한 줄[^\\n]{0,12}?top\\s*≤\\s*(\\d\\.\\d+)",
+      "expect": "6.44"
+    },
+    {
+      "label": "글자 축소 하한",
+      "pattern": "최소\\s*(\\d+(?:\\.\\d+)?)\\s*pt",
+      "expect": "10.5"
+    }
+  ],
+  "banned": [
+    {
+      "term": "CJ PG",
+      "reason": "결제대행사 명칭은 OnePG 하나",
+      "allow_if_line_contains": [
+        "금지",
+        "(×)"
+      ]
+    },
+    {
+      "term": "CJ ONS(OnePG)",
+      "reason": "괄호로 겹친 명칭 금지",
+      "allow_if_line_contains": [
+        "금지",
+        "(×)"
+      ]
+    },
+    {
+      "term": "F53148",
+      "reason": "강조 빨강은 FF0000 하나",
+      "allow_if_line_contains": [
+        "이전",
+        "옛"
+      ],
+      "scripts": true
+    },
+    {
+      "term": "D32F2F",
+      "reason": "강조 빨강은 FF0000 하나",
+      "allow_if_line_contains": [
+        "이전",
+        "옛"
+      ],
+      "scripts": true
+    },
+    {
+      "term": "C00000",
+      "reason": "강조 빨강은 FF0000 하나",
+      "allow_if_line_contains": [
+        "이전",
+        "옛"
+      ],
+      "scripts": true
+    },
+    {
+      "term": "[확인필요(",
+      "reason": "확인 태그는 「[주체 내용 확인 필요]」 서술형",
+      "allow_if_line_contains": [
+        "대신",
+        "(×)",
+        "쓰지 않"
+      ]
+    },
+    {
+      "term": "•",
+      "reason": "글머리는 「- 」",
+      "allow_if_line_contains": [
+        "쓰지 않",
+        "금지",
+        "검사",
+        "0건",
+        "없는가"
+      ]
+    }
+  ],
+  "topics": [
+    {
+      "name": "글머리",
+      "keywords": [
+        "글머리",
+        "하이픈"
+      ],
+      "home": "references/writing.md",
+      "allow_files": [
+        "references/text-fit.md",
+        "references/edit-user-pptx.md"
+      ]
+    },
+    {
+      "name": "강조 빨강",
+      "keywords": [
+        "빨강",
+        "빨간",
+        "FF0000",
+        "[[문구]]"
+      ],
+      "home": "references/writing.md",
+      "allow_files": [
+        "references/text-fit.md",
+        "references/edit-user-pptx.md"
+      ]
+    },
+    {
+      "name": "신규 개발 배지",
+      "keywords": [
+        "badge-bg",
+        "FDF9C9"
+      ],
+      "home": "references/writing.md"
+    },
+    {
+      "name": "확인 태그",
+      "keywords": [
+        "확인 태그"
+      ],
+      "home": "references/writing.md",
+      "allow_files": [
+        "references/text-fit.md",
+        "references/edit-user-pptx.md"
+      ]
+    },
+    {
+      "name": "주어 · 목적어",
+      "keywords": [
+        "주어",
+        "목적어"
+      ],
+      "home": "references/writing.md"
+    },
+    {
+      "name": "넘침 처리 순서",
+      "keywords": [
+        "넘치면",
+        "넘칠 때",
+        "글자 크기를 줄",
+        "글자를 줄이"
+      ],
+      "home": "references/text-fit.md"
+    },
+    {
+      "name": "피드백 장 번호",
+      "keywords": [
+        "피드백의 장 번호",
+        "피드백 장 번호",
+        "\"p.N\""
+      ],
+      "home": "references/edit-user-pptx.md"
+    },
+    {
+      "name": "작업 이력",
+      "keywords": [
+        "작업 이력",
+        "이력 표현"
+      ],
+      "home": "references/final-deliverable.md"
+    },
+    {
+      "name": "발표자 노트",
+      "keywords": [
+        "발표자 노트"
+      ],
+      "home": "references/final-deliverable.md"
+    }
+  ]
+}
