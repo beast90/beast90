@@ -1,4 +1,4 @@
-// kit.js — slim.js 위에 자동 줄나눔(의미 단위: 띄어쓰기 기준) · 표 행 높이 자동 계산
+// kit.js (mgc-ppt-template v5.1) — slim.js 위에 자동 줄나눔(의미 단위: 띄어쓰기 기준) · 표 행 높이 자동 계산
 const { deck, X0, W0 } = require('./slim');
 const { widthPt, breakSentences } = require('./fit_text');
 const strip = t => String(t).replace(/\[\[|\]\]/g, '');
@@ -111,7 +111,7 @@ function kit(title) {
       sc.end = its.length ? its[its.length - 1][0] : sc.start;
       its.forEach((it, i) => {
         const col = i < 6 ? 0 : 1, row = i % 6;
-        T(sc.div, `${it[0]}    ${it[1]}`, { x: 0.9 + col * 5.9, y: 4.05 + row * 0.38, w: 5.6, h: 0.34, fontSize: 13, color: C.muted3 }, '간지 목록');
+        T(sc.div, `${it[0]}    ${it[1]}`, { x: 0.9 + col * 5.9, y: 4.05 + row * 0.38, w: 5.6, h: 0.34, fontSize: 13, color: C.onDarkMeta }, '간지 목록');
       });
       if (its.length > 12) throw new Error('간지 목록 12개 초과: ' + sc.name);
     });

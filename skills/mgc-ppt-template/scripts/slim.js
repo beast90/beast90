@@ -1,10 +1,11 @@
-// slim.js — 간결 기획서형 부품 (mgc-ppt-template v5.0). 상단 흐름 헤더 · 장 구분 칩 · 순번 원 없는 골격
+// slim.js — 간결 기획서형 부품 (mgc-ppt-template v5.1). 상단 흐름 헤더 · 장 구분 칩 · 순번 원 없는 골격
 // 색 · 글꼴 · 줄맞춤은 references/design-common.md 토큰과 fit_text.js를 그대로 사용한다. 좌표 · 색 · 글자 크기는 고치지 않고 함수 인자로만 내용을 넣는다.
 const fs = require('fs');
 const pptxgen = require('pptxgenjs');
 const { fit } = require('./fit_text');
 const F = 'Malgun Gothic';
 const C = { yellow: 'FFDE00', text: '2E241D', dark: '3B2A20', muted: '7A6A5D', muted3: 'A6968A',
+  coverBg: '000000', onDarkSub: 'F2F2F2', onDarkMeta: 'D9D9D9', darkRule: '595959',   // 표지 · 간지 전용(references/design-common.md 「컬러 토큰」)
   soft: 'F3EEE8', tan: 'E2D9CF', beige: 'E6DDD4', white: 'FFFFFF',
   red: 'FF0000',      // 강조 빨강(기본 빨강 단일 값): 본문 속 핵심 정책 강조(빨간 굵은 글씨) 전용
   newCell: 'FDF9C9'   // MGC badge-bg 토큰: 표의 「신규 개발」 칸 배경 전용
@@ -54,11 +55,11 @@ function deck(title) {
     return s.addText(rich(t, r.text, r.charSpacing ? { charSpacing: r.charSpacing } : null), opt);
   };
   function cover({ kind, title, sub, meta }) {
-    const s = pres.addSlide(); s.background = { color: C.dark }; hasCover = true;
+    const s = pres.addSlide(); s.background = { color: C.coverBg }; hasCover = true;
     T(s, kind, { x: 0.9, y: 2.3, w: 11.5, h: 0.4, fontSize: 14, bold: true, color: C.yellow });
     T(s, title, { x: 0.9, y: 2.8, w: 11.5, h: 1.0, fontSize: 36, bold: true, color: C.white, valign: 'top' });
-    T(s, sub, { x: 0.9, y: 3.9, w: 11.5, h: 0.5, fontSize: 16, color: C.tan, valign: 'top' });
-    T(s, meta, { x: 0.9, y: 6.4, w: 11.5, h: 0.35, fontSize: 12, color: C.muted3 });
+    T(s, sub, { x: 0.9, y: 3.9, w: 11.5, h: 0.5, fontSize: 16, color: C.onDarkSub, valign: 'top' });
+    T(s, meta, { x: 0.9, y: 6.4, w: 11.5, h: 0.35, fontSize: 12, color: C.onDarkMeta });
   }
   // 골격: 영역 이름(작은 글씨) + 제목 + 핵심 문장. 장식 도형 없음.
   function slide({ sec, title, msg, notes }) {
@@ -97,11 +98,11 @@ function deck(title) {
   }
   // 간지: 영역 시작 장. 어두운 배경 + 영역 이름 + 담은 장 목록
   function divider({ name, desc, items }) {
-    const s = pres.addSlide(); s.background = { color: C.dark };
+    const s = pres.addSlide(); s.background = { color: C.coverBg }; s._dark = true;
     T(s, name, { x: 0.9, y: 2.2, w: 11.5, h: 0.9, fontSize: 34, bold: true, color: C.white });
-    T(s, desc, { x: 0.9, y: 3.15, w: 11.5, h: 0.45, fontSize: 15, color: C.tan });
-    s.addShape(pres.shapes.LINE, { x: 0.9, y: 3.85, w: 11.5, h: 0, line: { color: C.muted, width: 0.75 } });
-    (items || []).forEach((it, i) => T(s, it, { x: 0.9, y: 4.05 + i * 0.38, w: 11.5, h: 0.34, fontSize: 13, color: C.muted3 }, '간지 목록'));
+    T(s, desc, { x: 0.9, y: 3.15, w: 11.5, h: 0.45, fontSize: 15, color: C.onDarkSub });
+    s.addShape(pres.shapes.LINE, { x: 0.9, y: 3.85, w: 11.5, h: 0, line: { color: C.darkRule, width: 0.75 } });
+    (items || []).forEach((it, i) => T(s, it, { x: 0.9, y: 4.05 + i * 0.38, w: 11.5, h: 0.34, fontSize: 13, color: C.onDarkMeta }, '간지 목록'));
     pages.push(s); return s;
   }
   function cap(s, { path, x = X0, y, w, alt, caption }) {
@@ -141,7 +142,7 @@ function deck(title) {
   // 쪽 번호 = PowerPoint 슬라이드 번호(표지 포함). 피드백의 'n p'와 화면 번호가 어긋나지 않게 한다
   async function save(f) {
     const off = hasCover ? 1 : 0, total = pages.length + off;
-    pages.forEach((s, i) => T(s, `${i + 1 + off} / ${total}`, { x: 11.73, y: 7.0, w: 1.0, h: 0.28, fontSize: 9, color: C.muted3, align: 'right' }));
+    pages.forEach((s, i) => T(s, `${i + 1 + off} / ${total}`, { x: 11.73, y: 7.0, w: 1.0, h: 0.28, fontSize: 9, color: s._dark ? C.onDarkMeta : C.muted3, align: 'right' }));
     return pres.writeFile({ fileName: f });
   }
   return { pres, T, cover, slide, divider, count: () => pages.length + (hasCover ? 1 : 0), phones, notes, key, cap, table, stats, save, C };

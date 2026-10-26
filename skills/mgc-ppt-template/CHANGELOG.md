@@ -2,6 +2,9 @@
 
 규칙 본문에는 버전 꼬리표를 달지 않는다. 언제 · 왜 바뀌었는지는 이 파일에만 쓴다. 최신이 위.
 
+- v5.1 (2026-10-26): 표지 · 간지 색을 사용자 수정본 기준으로 변경, 편집 도구 색 · 폭 보정 정정(기준 덱 「앱카드 연동 통합본 v0.26」 표지 포함 88장)
+  - 간결 기획서형 표지 · 간지: 배경 3B2A20 → 000000, 부제 · 간지 설명 E2D9CF → F2F2F2, 날짜 줄 · 간지 목록 A6968A → D9D9D9, 간지 구분선 7A6A5D → 595959, 간지 쪽 번호 D9D9D9. 토큰 cover-black · on-dark-sub · on-dark-meta · dark-rule 추가. `slim.js` · `kit.js` 같이 변경. 기능 보고형 `addCover()`는 고정 코드라 그대로
+  - `pptx_edit.py`: 빨강 쓰기 F53148 → FF0000, 핏콜라보 테두리 D32F2F → FF0000, 회색 MUTED 7A6A5E → 7A6A5D, 줄바꿈 폭 보정 0.88 → 0.82, 이전 색 일괄 교체 `fix_colors` 추가
 - v5.0 (2026-10-26): 구조 재편(규칙 내용 보존, 충돌 정리). `skill-maintainer` 점검기 기준
   - 구조: SKILL.md(951줄 · 103,703바이트)를 읽기 지도로 줄이고, 규칙을 `references/` 10개 파일에 주제별 기준 위치 1곳씩 배치. 변경 이력은 이 파일로, 부록 D · E 코드는 `scripts/slim.js` · `scripts/flow_parts.js`로 분리(부록 F는 `references/edit-user-pptx.md` 사용 예)
   - 우선순위 · 규칙 위치 지도 · 스킬 수정 절차(SKILL.md 4 · 5장), 점검 설정 `lint.json` 추가

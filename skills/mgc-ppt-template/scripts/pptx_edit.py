@@ -1,4 +1,4 @@
-"""pptx_edit.py — 사용자가 다듬은 pptx를 python-pptx로 직접 고칠 때 쓰는 도구 (4-C-10, 부록 F)
+"""pptx_edit.py — 사용자가 다듬은 pptx를 python-pptx로 직접 고칠 때 쓰는 도구 (mgc-ppt-template v5.1, references/edit-user-pptx.md)
 
 from pptx_edit import *
 - 줄나눔: wrap(text, w_in, size, bold) — 칸 폭 기준 띄어쓰기 단위, '- ' 항목 이어지는 줄은 두 칸 들여쓰기
@@ -6,6 +6,7 @@ from pptx_edit import *
 - 표: set_cell · fit_rows · del_row · add_col · del_col · tbl · bottom
 - 도형: textbox · box · arrow (맑은 고딕, 정보 도형만)
 - 장: duplicate_slide · renumber(p, inserted_at) · add_source_line · replace_picture
+- 색: fix_colors(p) — 토큰 밖 이전 값(회색 7A6A5E, 빨강 F53148 · D32F2F · E03C31 · C00000)을 토큰 값으로 일괄 교체
 """
 import copy, re
 from pptx.util import Inches, Pt
@@ -14,7 +15,7 @@ from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 
-# ── 폭 추정 (fit_text.js와 같은 표, 여유 0.88: LibreOffice·PowerPoint 실측 보정)
+# ── 폭 추정 (fit_text.js와 같은 표, 폭 보정 0.82: 0.88에서는 PowerPoint가 단어 중간에서 줄을 바꿈)
 def em(ch, bold):
     c = ord(ch); b = 1.06 if bold else 1
     if (0xAC00 <= c <= 0xD7A3) or (0x1100 <= c <= 0x11FF) or (0x3130 <= c <= 0x318F) or (0x4E00 <= c <= 0x9FFF) or (0x3000 <= c <= 0x303F) or (0xFF00 <= c <= 0xFFEF):
@@ -32,7 +33,7 @@ def em(ch, bold):
     if ch == '-': return 0.38
     return 0.92
 def wpt(s, size, bold): return sum(em(c, bold) * size for c in s)
-def wrap(text, w_in, size, bold=False, slack=0.88):
+def wrap(text, w_in, size, bold=False, slack=0.82):
     avail = w_in * 72 * slack - 1.5; out = []
     for par in str(text).split('\n'):
         hy = par.startswith('- '); cur = ''
@@ -44,7 +45,8 @@ def wrap(text, w_in, size, bold=False, slack=0.88):
         out.append(cur)
     return out
 
-RED = {'F53148', 'D32F2F', 'E03C31', 'FF0000'}
+RED = {'F53148', 'D32F2F', 'E03C31', 'C00000', 'FF0000'}   # 이전 값도 빨강 런으로 인식(쓸 때는 RED_HEX만)
+RED_HEX = 'FF0000'
 def _isred(r):
     rp = r.find(qn('a:rPr'))
     if rp is None: return False
@@ -75,7 +77,7 @@ def set_tf(tf, text, w_in=None, size=None, bold=None, nowrap=False):
             if red:
                 rp = nr.find(qn('a:rPr')); rp.set('b', '1')
                 for f in rp.findall(qn('a:solidFill')): rp.remove(f)
-                sf = rp.makeelement(qn('a:solidFill'), {}); sf.append(sf.makeelement(qn('a:srgbClr'), {'val': 'F53148'})); rp.insert(0, sf)
+                sf = rp.makeelement(qn('a:solidFill'), {}); sf.append(sf.makeelement(qn('a:srgbClr'), {'val': RED_HEX})); rp.insert(0, sf)
             (end.addprevious(nr) if end is not None else np_.append(nr))
         body.append(np_)
     return len(lines)
@@ -118,8 +120,8 @@ def del_col(table, ci):
     for tr in table._tbl.tr_lst: tr.remove(tr.findall(qn('a:tc'))[ci])
 
 # ── 도형 (정보 도형만, 1-1)
-INK = RGBColor(0x2E, 0x24, 0x1D); MUTED = RGBColor(0x7A, 0x6A, 0x5E); BROWN = RGBColor(0x3B, 0x2A, 0x20)
-BEIGE = RGBColor(0xF3, 0xEE, 0xE8); LINE = RGBColor(0xC9, 0xBB, 0xAA); FC_RED = RGBColor(0xD3, 0x2F, 0x2F)
+INK = RGBColor(0x2E, 0x24, 0x1D); MUTED = RGBColor(0x7A, 0x6A, 0x5D); BROWN = RGBColor(0x3B, 0x2A, 0x20)
+BEIGE = RGBColor(0xF3, 0xEE, 0xE8); LINE = RGBColor(0xC9, 0xBB, 0xAA); FC_RED = RGBColor(0xFF, 0x00, 0x00)
 FC_PINK = RGBColor(0xFD, 0xEC, 0xEC); WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 def _font(r, size, bold, color):
     r.font.size = Pt(size); r.font.bold = bold; r.font.color.rgb = color
@@ -205,3 +207,14 @@ def replace_picture(slide, png_path):
     pic = [x for x in slide.shapes if x.shape_type == 13][0]
     pic.part.related_part(pic._element.blipFill.blip.rEmbed)._blob = open(png_path, 'rb').read()
     return pic
+
+
+# ── 색 정리: 토큰 밖 옛 값을 토큰 값으로 (글자 · 채우기 · 선 모두)
+LEGACY = {'7A6A5E': '7A6A5D', 'F53148': RED_HEX, 'D32F2F': RED_HEX, 'E03C31': RED_HEX, 'C00000': RED_HEX}   # 이전 값 → 토큰
+def fix_colors(p, mapping=LEGACY):
+    n = 0
+    for s in p.slides:
+        for e in s._element.iter(qn('a:srgbClr')):
+            v = e.get('val', '').upper()
+            if v in mapping: e.set('val', mapping[v]); n += 1
+    return n

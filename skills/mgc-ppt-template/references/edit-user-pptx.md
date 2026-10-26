@@ -21,6 +21,10 @@
 - **장 추가 · 분할**: `duplicate_slide`로 원본 장을 복제해 바로 뒤에 넣고 `renumber(p, 새 장 번호)`로 쪽 번호(n / N), 간지 목록 번호, 본문 "N장" · "N~M장" · "(N~M)" 참조를 다시 맞춘다. 목차 표 범위는 간지 위치로 다시 계산하고, 새 장의 간지 목록 항목은 2열 배치로 다시 놓는다.
 - **장 이동**: 보고 구조를 바꿔 장을 옮기면 `move_remap.py`로 번호를 다시 매기고, docx · 이관 문서 · 검토 엑셀의 장 번호까지 같이 바꾼다.
 
+## 색 정리
+
+- 받은 파일에 토큰 밖 이전 값(회색 7A6A5E, 빨강 F53148 · D32F2F · E03C31 · C00000)이 있으면 `fix_colors(p)`로 토큰 값(7A6A5D · FF0000)으로 일괄 교체한다. 사용자가 정한 표지 · 간지 색(`references/design-common.md` 「깔끔한 장표」)은 바꾸지 않는다.
+
 ## 용어 · 명칭 일괄 치환
 
 - 런 단위로 바꾸고, 한 문구가 여러 런에 걸친 곳은 목록으로 받아 따로 고친다. 치환 뒤 넘친 칸은 `check_text.py` 목록대로 `merged_text` → `set_cell`로 다시 나눈다.
@@ -56,5 +60,6 @@ add_source_line(p, '※ API 번호(…)는 34장 목록 기준', skip=(1, 2, 34)
 replace_picture(S(42), '/home/claude/i42.png')        # 같은 비율로 자른 흐름도 이미지
 box(S(33), 7.0, 1.95, 5.73, 0.6, ['인증 모듈(Webview 안)', '카드사 앱 주소를 열어 줌'], fill=FC_PINK, red_border=True)
 arrow(S(33), 9.865, 2.55, 9.865, 2.78)
+print(fix_colors(p))                                   # 이전 값 회색 · 빨강을 토큰 값으로
 p.save('out.pptx')   # → references/qa-checklist.md
 ```
