@@ -12,7 +12,8 @@
 ## 칸 문구 교체
 
 - `set_cell`은 칸 폭 − 0.24in에서 의미 단위로 줄을 나누고, 빨강이 아닌 첫 런 서식을 원본으로 쓴다(빨강 런을 원본으로 잡아 문장 전체가 빨갛게 되는 사고 방지).
-- 줄 수가 바뀌면 `fit_rows`로 행 높이를 다시 계산하고, 표 아래 요소(핵심 한 줄 · 각주 · 도식)와 겹치는지 `bottom()`으로 확인한다.
+- 한 줄에 들어갈 정보가 나뉘면 `balance_cols` → `rewrap_table`로 열 폭을 다시 나눈다(`references/text-fit.md` 「깔끔한 표 · 상자」).
+- 줄 수가 바뀌면(늘거나 줄거나) `fit_rows`로 행 높이를 다시 계산하고, 표 아래 요소(핵심 한 줄 · 각주 · 도식)와 겹치는지 `bottom()`으로 확인한다.
 - 겹치면 `references/text-fit.md` 「넘칠 때 고치는 순서」의 사용자 판 행을 따른다.
 
 ## 열 · 행 · 장 바꾸기
@@ -63,5 +64,5 @@ replace_picture(S(42), '/home/claude/i42.png')        # 같은 비율로 자른 
 box(S(33), 7.0, 1.95, 5.73, 0.6, ['인증 모듈(Webview 안)', '카드사 앱 주소를 열어 줌'], fill=FC_PINK, red_border=True)
 arrow(S(33), 9.865, 2.55, 9.865, 2.78)
 print(fix_colors(p))                                   # 이전 값 회색 · 빨강을 토큰 값으로
-p.save('out.pptx')   # → references/qa-checklist.md
+p.save('out.pptx')   # → python3 pptx_edit.py finalize out.pptx out.pptx → references/qa-checklist.md
 ```

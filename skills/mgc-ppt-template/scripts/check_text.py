@@ -1,4 +1,4 @@
-"""글꼴 · 줄 탈락 · 문장 줄바꿈 · 기호 검사 (mgc-ppt-template v5.2). 사용: python3 check_text.py out.pptx
+"""글꼴 · 줄 탈락 · 문장 줄바꿈 · 기호 검사 (mgc-ppt-template v5.4). 사용: python3 check_text.py out.pptx
 모든 pptx에 쓸 수 있다(기능 보고형, 안내문형, QA 수정 요청, 사용자가 손으로 고친 파일).
 1) 글꼴: 테마와 모든 글자가 맑은고딕인가
 2) 줄 탈락: 직접 넣은 줄(문단)마다 맑은고딕 추정 폭이 상자·표 칸 폭을 넘지 않는가
@@ -6,6 +6,8 @@
 3) 줄 수: 줄 수 × 글자 크기 × 1.3이 상자·행 높이를 넘지 않는가
 4) 문장 줄바꿈: 한 줄 안에서 온점(.)으로 문장이 끝난 뒤 다음 문장이 이어지지 않는가
    (숫자 1.5, 약어 B.O, 날짜 2026.10.15는 해당 없음)
+7) 정리(표): 한 줄에 들어가는 「- 」 정보가 두 줄로 나뉜 칸, 줄 수에 필요한 높이보다 빈 줄 하나(줄 높이의 0.8배) 이상 높은 행
+6) 단어 끊김 방지: 글 있는 문단마다 eaLnBrk="0"인지(references/text-fit.md 「원칙」)
 5) 기호(references/writing.md 「기호」): 「•」 · 「–」 글머리, 문장 속 「 — 」 구분, 줄 머리 「·」는 [기호],
    줄 끝 「·」는 [참고](문장 속 긴 나열인지 눈으로 확인, 통과 판정에는 넣지 않음)
 글자 폭은 fit_text.js와 같은 맑은고딕 추정표, 여유 3%. 문제 0건이면 '글꼴·줄바꿈 통과'"""
@@ -63,6 +65,9 @@ def check_box(out, where, txBody, w_in, h_in, wrap=True):
     avail = w_in * 72 * SAFE
     n_lines, height = 0, 0.0
     for p_el in txBody.iter(NS + 'p'):
+        if p_el.find(NS + 'r') is not None:
+            ppr = p_el.find(NS + 'pPr'); NOSPLIT[1] += 1
+            if ppr is None or ppr.get('eaLnBrk') != '0': NOSPLIT[0] += 1
         for t, wd, sz in para_lines(p_el, DEF_SIZE):
             n_lines += 1; height += sz * LINE / 72
             if not t.strip(): continue
@@ -78,6 +83,21 @@ def check_box(out, where, txBody, w_in, h_in, wrap=True):
             if s_.endswith('·'): NOTE.append(f'{where} [참고] 줄 끝 「·」: {t!r}')
     if h_in is not None and height > h_in * 1.05 and n_lines > 1:
         out.append(f'{where} [줄 수 초과] {n_lines}줄 ({height:.2f}in) > 높이 {h_in:.2f}in')
+
+def max_sz(row):
+    return max([sz for c in row.cells for p_el in c._tc.txBody.iter(NS + 'p') for _, _, sz in para_lines(p_el, DEF_SIZE)] or [DEF_SIZE])
+
+def tidy_cell(out, where, txBody, w_in):
+    """「- 」 정보가 두 줄 이상으로 나뉘었는데 합치면 한 줄(폭 × WRAP_SLACK)에 들어가는 칸"""
+    items = []
+    for p_el in txBody.iter(NS + 'p'):
+        for t, wd, sz in para_lines(p_el, DEF_SIZE):
+            if not t.strip(): continue
+            if t.startswith('- ') or not items: items.append([t, wd, 1])
+            else: items[-1][0] += ' ' + t.strip(); items[-1][1] += wd + 0.3 * sz; items[-1][2] += 1
+    for t, wd, n in items:
+        if n > 1 and wd <= w_in * 72 * WRAP_SLACK:
+            out.append(f'{where} [정리] 한 줄에 들어가는 정보가 {n}줄로 나뉨 — balance_cols · rewrap_table: {t[:40]!r}')
 
 def fonts_of(el):
     res = []
@@ -95,6 +115,9 @@ def emu_in(v): return Emu(v).inches if v is not None else 0.0
 path = sys.argv[1]
 font_bad, wrap_bad = [], []
 SYM, NOTE = [], []
+NOSPLIT = [0, 0]
+TIDY = []   # [정리] 한 줄에 들어가는데 나뉜 정보, 줄 수보다 높은 행
+WRAP_SLACK = 0.95   # pptx_edit.SLACK과 같은 값   # [eaLnBrk=0 아닌 문단, 글 있는 문단]
 z = zipfile.ZipFile(path)
 x = z.read('ppt/theme/theme1.xml').decode('utf8') if 'ppt/theme/theme1.xml' in z.namelist() else ''
 for kind in ('majorFont', 'minorFont'):
@@ -124,7 +147,16 @@ for i, s in enumerate(p.slides, 1):
                     w = emu_in(tb.columns[ci].width) - emu_in(c.margin_left) - emu_in(c.margin_right)
                     h = emu_in(row.height) - emu_in(c.margin_top) - emu_in(c.margin_bottom)
                     check_box(wrap_bad, f'{i}장 [{sh.name} {ri + 1}행 {ci + 1}열]', c._tc.txBody, w, h)
+                    tidy_cell(TIDY, f'{i}장 [{sh.name} {ri + 1}행 {ci + 1}열]', c._tc.txBody, w)
+                need = 0.0
+                for c in row.cells:
+                    ls = [(t, sz) for p_el in c._tc.txBody.iter(NS + 'p') for t, wd, sz in para_lines(p_el, DEF_SIZE)]
+                    need = max(need, sum(sz for _, sz in ls) * LINE / 72 + emu_in(c.margin_top) + emu_in(c.margin_bottom) + 0.04)
+                if emu_in(row.height) - need > 0.8 * max_sz(row) * LINE / 72 and len(tb.rows) > 1:   # 빈 줄 하나 이상
+                    TIDY.append(f'{i}장 [{sh.name} {ri + 1}행] [정리] 행 높이 {emu_in(row.height):.2f}in > 필요 {need:.2f}in — fit_rows로 줄임')
 
-for m in font_bad + wrap_bad + SYM + NOTE: print(m)
+for m in font_bad + wrap_bad + SYM + TIDY + NOTE: print(m)
 print('글꼴·줄바꿈 통과' if not (font_bad or wrap_bad) else f'글꼴 {len(font_bad)}건, 줄바꿈 {len(wrap_bad)}건')
 print(f'[기호] {len(SYM)}건' + (f' · [참고] {len(NOTE)}건' if NOTE else ''))
+print(f'[정리] {len(TIDY)}건')
+print(f'[단어 끊김 방지] 미설정 {NOSPLIT[0]}문단 / {NOSPLIT[1]}문단' + (' — python3 pptx_edit.py finalize 입력 출력' if NOSPLIT[0] else ''))

@@ -1,13 +1,13 @@
-// kit.js (mgc-ppt-template v5.1) — slim.js 위에 자동 줄나눔(의미 단위: 띄어쓰기 기준) · 표 행 높이 자동 계산
+// kit.js (mgc-ppt-template v5.4) — slim.js 위에 자동 줄나눔(의미 단위: 띄어쓰기 기준) · 표 행 높이 자동 계산
 const { deck, X0, W0 } = require('./slim');
 const { widthPt, breakSentences } = require('./fit_text');
 const strip = t => String(t).replace(/\[\[|\]\]/g, '');
 const LINE = 1.3, BOTTOM = 6.85;
 const bad = m => { if (process.env.MGC_FIT === 'warn') console.warn(m); else throw new Error(m); };
 
-// 칸 폭(in)에 맞춰 띄어쓰기 단위로 줄을 나눈다. '- ' 항목의 이어지는 줄은 두 칸 들여쓴다
+// 칸 폭(in)에 맞춰 띄어쓰기 단위로 줄을 나눈다. '- ' 항목의 이어지는 줄은 두 칸 표시 → pptx_edit.py finalize가 문단 들여쓰기(marL)로 바꾼다
 function wrap(text, wIn, size, bold) {
-  const avail = wIn * 72 * 0.97 - 1.5;
+  const avail = wIn * 72 * 0.95;   // 줄바꿈 폭 보정(pptx_edit.SLACK과 같은 값): references/text-fit.md 「폭 추정 · 보정 값」
   const out = [];
   breakSentences(String(text)).split('\n').forEach(par => {
     const hy = par.startsWith('- ');
@@ -65,11 +65,18 @@ function kit(title) {
     const base = o.size || 11, lim = (o.maxB || BOTTOM) - (o.reserve != null ? o.reserve : 0.8);
     let best = base;
     if (o.grow !== false) {
+      const lines0 = countLines(head, rows, Object.assign({}, o, { size: base }));
       for (let z = base + 0.5; z <= Math.min(base + 2, 14) + 0.001; z += 0.5) {
-        if (measure(head, rows, Object.assign({}, o, { size: z })) <= lim) best = z; else break;
+        const oz = Object.assign({}, o, { size: z });
+        // 키워도 줄 수가 늘지 않을 때만 키운다(한 줄 정보가 두 줄로 나뉘면 빈 공간 · 조기 줄바꿈이 생김)
+        if (measure(head, rows, oz) <= lim && countLines(head, rows, oz) <= lines0) best = z; else break;
       }
     }
     return tb0(s, head, rows, Object.assign({}, o, { size: best }));
+  }
+  function countLines(head, rows, { colW, size = 11, firstBold = true }) {
+    const wr = (t, j, b) => wrap(t, colW[j] - 0.24, size, b);
+    return (head || []).concat(...rows).length ? [].concat(head ? head.map((t, j) => nlines(wr(t, j, true))) : [], ...rows.map(r => r.map((t, j) => nlines(wr(t, j, firstBold && j === 0))))).reduce((a, v) => a + v, 0) : 0;
   }
   function measure(head, rows, { y = 1.95, colW, size = 11, firstBold = true, minH = 0.36 }) {
     const wr = (t, j, b) => wrap(t, colW[j] - 0.24, size, b);

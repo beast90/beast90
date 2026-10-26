@@ -1,4 +1,4 @@
-"""pptx_edit.py — 사용자가 다듬은 pptx를 python-pptx로 직접 고칠 때 쓰는 도구 (mgc-ppt-template v5.2, references/edit-user-pptx.md)
+"""pptx_edit.py — 사용자가 다듬은 pptx를 python-pptx로 직접 고칠 때 쓰는 도구 (mgc-ppt-template v5.4, references/edit-user-pptx.md)
 
 from pptx_edit import *
 - 줄나눔: wrap(text, w_in, size, bold) — 칸 폭 기준 띄어쓰기 단위, '- ' 항목 이어지는 줄은 HANG 표시(쓸 때 문단 들여쓰기 marL로 바꿈, 공백 들여쓰기 없음)
@@ -6,16 +6,18 @@ from pptx_edit import *
 - 표: set_cell · fit_rows · del_row · add_col · del_col · tbl · bottom
 - 도형: textbox · box · arrow (맑은 고딕, 정보 도형만)
 - 장: duplicate_slide · renumber(p, inserted_at) · add_source_line · replace_picture
+- 표 정리: balance_cols(table) — 열 폭 합은 두고 문장 열 폭을 다시 나눠 한 줄에 들어가게, rewrap_table · fit_rows로 줄 · 행 높이 다시 계산
+- 마무리: fix_hang(p) 공백 들여쓰기 → 문단 들여쓰기, no_word_split(p) 모든 문단 eaLnBrk="0"(한글 단어 중간 줄바꿈 금지). 명령: python3 pptx_edit.py finalize 입력.pptx 출력.pptx
 - 색: fix_colors(p) — 토큰 밖 이전 값(회색 7A6A5E, 빨강 F53148 · D32F2F · E03C31 · C00000)을 토큰 값으로 일괄 교체
 """
-import copy, re
+import copy, re, sys
 from pptx.util import Inches, Pt
 from pptx.oxml.ns import qn
 from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 
-# ── 폭 추정 (fit_text.js와 같은 표, 폭 보정 0.82: 0.88에서는 PowerPoint가 단어 중간에서 줄을 바꿈)
+# ── 폭 추정 (fit_text.js와 같은 표). 줄바꿈 폭 보정 SLACK: references/text-fit.md 「폭 추정 · 보정 값」
 def em(ch, bold):
     c = ord(ch); b = 1.06 if bold else 1
     if (0xAC00 <= c <= 0xD7A3) or (0x1100 <= c <= 0x11FF) or (0x3130 <= c <= 0x318F) or (0x4E00 <= c <= 0x9FFF) or (0x3000 <= c <= 0x303F) or (0xFF00 <= c <= 0xFFEF):
@@ -34,8 +36,9 @@ def em(ch, bold):
     return 0.92
 def wpt(s, size, bold): return sum(em(c, bold) * size for c in s)
 HANG = '\x01'   # 「- 」 항목의 이어지는 줄 표시: 문단 들여쓰기(marL)로 그림
-def wrap(text, w_in, size, bold=False, slack=0.82):
-    avail = w_in * 72 * slack - 1.5; out = []
+SLACK = 0.95   # 사용자 수정 표(앱카드 연동 통합본 v0.26 목차) 실측: 추정 폭 = 실제의 0.95~0.98배
+def wrap(text, w_in, size, bold=False, slack=SLACK):
+    avail = w_in * 72 * slack; out = []
     hang_w = wpt('- ', size, bold)
     for par in str(text).split('\n'):
         hy = par.startswith('- '); cur = ''
@@ -47,9 +50,13 @@ def wrap(text, w_in, size, bold=False, slack=0.82):
             else: cur = cand
         out.append(cur)
     return out
-def _hang(p_el, ln, size):
-    """「- 」 줄은 내어쓰기, 이어지는 줄은 같은 폭 들여쓰기. 반환: HANG을 뗀 글"""
+def _ppr(p_el):
     pPr = p_el.find(qn('a:pPr'))
+    if pPr is None: pPr = p_el.makeelement(qn('a:pPr'), {}); p_el.insert(0, pPr)
+    return pPr
+def _hang(p_el, ln, size):
+    """「- 」 줄은 내어쓰기, 이어지는 줄은 같은 폭 들여쓰기. 단어 끊김 방지(eaLnBrk=0)도 같이 넣는다. 반환: HANG을 뗀 글"""
+    pPr = _ppr(p_el); pPr.set('eaLnBrk', '0')
     if ln.startswith('- ') or ln.startswith(HANG):
         if pPr is None: pPr = p_el.makeelement(qn('a:pPr'), {}); p_el.insert(0, pPr)
         m = str(int(round(wpt('- ', size, False) * 12700)))
@@ -103,10 +110,13 @@ def bottom(sh):
     return (sh.top + sum(r.height for r in sh.table.rows)) / 914400 if sh.has_table else (sh.top + sh.height) / 914400
 def set_cell(table, ri, ci, text):
     return set_tf(table.cell(ri, ci).text_frame, text, table.columns[ci].width / 914400 - 0.24)
+def marked(pa):
+    """문단 글. 빨강 런은 [[ ]]로 표시(다시 넣을 때 강조 유지)"""
+    return ''.join(f'[[{r.text}]]' if _isred(r._r) else r.text for r in pa.runs).replace(']][[', '')
 def merged_text(cell):
-    """자동으로 나뉜 줄을 다시 한 정보로 합친다('- ' 항목과 온점 끝 줄은 유지)"""
+    """자동으로 나뉜 줄을 다시 한 정보로 합친다('- ' 항목과 온점 끝 줄은 유지, 빨강 강조 유지)"""
     out = []
-    for ln in [pa.text for pa in cell.text_frame.paragraphs]:
+    for ln in [marked(pa) for pa in cell.text_frame.paragraphs]:
         s = ln.strip()
         if out and not s.startswith('- ') and not out[-1].rstrip().endswith('.'): out[-1] = out[-1].rstrip() + ' ' + s
         else: out.append(s)
@@ -114,6 +124,30 @@ def merged_text(cell):
 def rewrap_table(table):
     for ri in range(len(table.rows)):
         for ci in range(len(table.columns)): set_cell(table, ri, ci, merged_text(table.cell(ri, ci)))
+def balance_cols(table, cols=None, slack=SLACK):
+    """열 폭 합은 그대로 두고 문장 열의 폭을 다시 나눠 정보(「- 」 항목)마다 한 줄에 들어가게 한다.
+    cols: 다시 나눌 열(기본: 첫 열을 뺀 열 중 평균 10자 이상이거나 「- 」로 시작하는 열). 반환: 새 폭 목록 또는 None(합이 모자라 그대로 둠)"""
+    nr, nc = len(table.rows), len(table.columns); start = 1 if nr > 1 else 0
+    def items(ci):
+        out = []
+        for ri in range(start, nr):
+            c = table.cell(ri, ci); size, bold = run_props(c.text_frame)
+            out += [(re.sub(r'\[\[|\]\]', '', t), size, bold) for t in merged_text(c).split('\n') if t.strip()]
+        return out
+    if cols is None:
+        cols = []
+        for ci in range(1, nc):
+            its = items(ci)
+            if its and (any(t.startswith('- ') for t, _, _ in its) or sum(len(t) for t, _, _ in its) / len(its) >= 10): cols.append(ci)
+    if len(cols) < 2: return None
+    need = {ci: max((wpt(t, sz, b) for t, sz, b in items(ci)), default=0) / (72 * slack) + 0.24 + 0.01 for ci in cols}
+    total = sum(table.columns[ci].width for ci in cols) / 914400
+    if sum(need.values()) > total + 1e-6: return None
+    extra = (total - sum(need.values())) / len(cols)
+    ws = {ci: need[ci] + extra for ci in cols}
+    ws[cols[-1]] = total - sum(ws[c] for c in cols[:-1])   # 합 오차는 마지막 열에서 맞춤
+    for ci in cols: table.columns[ci].width = Inches(ws[ci])
+    return [round(table.columns[ci].width / 914400, 3) for ci in range(nc)]
 def fit_rows(table, rows=None, minh=0.36):
     for ri, row in enumerate(table.rows):
         if rows is not None and ri not in rows: continue
@@ -225,6 +259,38 @@ def replace_picture(slide, png_path):
 
 
 # ── 색 정리: 토큰 밖 옛 값을 토큰 값으로 (글자 · 채우기 · 선 모두)
+def no_word_split(p):
+    """모든 글상자 · 표 칸 문단에 eaLnBrk="0": 줄이 넘쳐도 한글 단어 가운데가 아니라 띄어쓰기에서 줄을 바꾼다. 반환: 바꾼 문단 수"""
+    n = 0
+    for s in p.slides:
+        for p_el in s._element.iter(qn('a:p')):
+            if p_el.find(qn('a:r')) is None: continue
+            pPr = _ppr(p_el)
+            if pPr.get('eaLnBrk') != '0': pPr.set('eaLnBrk', '0'); n += 1
+    return n
+
+def fix_hang(p):
+    """「- 」 문단 뒤 공백 두 칸으로 시작하는 이어지는 줄(생성 코드 · 이전 판 표시)을 문단 들여쓰기로 바꾼다. 반환: 바꾼 문단 수"""
+    n = 0
+    for s in p.slides:
+        for body in s._element.iter(qn('a:txBody')):
+            prev_dash = False
+            for p_el in body.findall(qn('a:p')):
+                ts = [t for t in p_el.iter(qn('a:t'))]; txt = ''.join(t.text or '' for t in ts)
+                rp = p_el.find('.//' + qn('a:rPr')); size = int(rp.get('sz')) / 100 if rp is not None and rp.get('sz') else 12
+                if txt.startswith('- '):
+                    prev_dash = True; pPr = _ppr(p_el); m = str(int(round(wpt('- ', size, False) * 12700)))
+                    pPr.set('marL', m); pPr.set('indent', '-' + m)
+                elif prev_dash and txt.startswith('  ') and ts:
+                    k = len(txt) - len(txt.lstrip(' '))
+                    for t in ts:   # 앞 공백만 지운다(여러 런에 걸쳐도)
+                        if k <= 0: break
+                        cut = min(k, len(t.text or '') - len((t.text or '').lstrip(' '))); t.text = (t.text or '')[cut:]; k -= cut
+                        if (t.text or '').strip(): break
+                    pPr = _ppr(p_el); pPr.set('marL', str(int(round(wpt('- ', size, False) * 12700)))); pPr.set('indent', '0'); n += 1
+                elif txt.strip(): prev_dash = False
+    return n
+
 LEGACY = {'7A6A5E': '7A6A5D', 'F53148': RED_HEX, 'D32F2F': RED_HEX, 'E03C31': RED_HEX, 'C00000': RED_HEX}   # 이전 값 → 토큰
 def fix_colors(p, mapping=LEGACY):
     n = 0
@@ -233,3 +299,9 @@ def fix_colors(p, mapping=LEGACY):
             v = e.get('val', '').upper()
             if v in mapping: e.set('val', mapping[v]); n += 1
     return n
+
+if __name__ == '__main__' and len(sys.argv) == 4 and sys.argv[1] == 'finalize':
+    from pptx import Presentation
+    _p = Presentation(sys.argv[2])
+    print('들여쓰기', fix_hang(_p), '문단 · 단어 끊김 방지', no_word_split(_p), '문단 · 색 정리', fix_colors(_p), '곳')
+    _p.save(sys.argv[3])

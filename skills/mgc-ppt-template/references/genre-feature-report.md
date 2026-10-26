@@ -20,7 +20,7 @@
 2. **패턴 선택**: 기능 소개 장은 A · C · E 중 하나, 화면 상세 장은 B · D · F 중 하나.
 3. **이미지 준비**: 아래 「화면 이미지 준비」에 따라 화면안을 PNG로 잘라 둔다.
 4. **스크립트 작성**: `example_interim_report.js`를 복사한 뒤 문구 · 이미지 경로만 바꾼다. 「글자 수 한도」를 참고해 줄을 직접 나눈다.
-5. **생성 · 검수**: `node 생성스크립트.js out.pptx`로 생성한 뒤 `references/qa-checklist.md`를 수행한다. 줄 탈락 오류로 멈추면 `references/text-fit.md` 「넘칠 때 고치는 순서」의 새로 생성 행을 따른다.
+5. **생성 · 검수**: `node 생성스크립트.js out.pptx`로 생성하고 `python3 pptx_edit.py finalize out.pptx out.pptx`를 실행한 뒤 `references/qa-checklist.md`를 수행한다. 줄 탈락 오류로 멈추면 `references/text-fit.md` 「넘칠 때 고치는 순서」의 새로 생성 행을 따른다.
 
 ## 구성 규칙
 

@@ -6,8 +6,9 @@
 
 | 순서 | 명령 | 통과 기준 |
 |---|---|---|
+| 0 | `python3 pptx_edit.py finalize out.pptx out.pptx` | 들여쓰기 · 단어 끊김 방지 · 이전 색 정리(`references/text-fit.md` 「깔끔한 표 · 상자」) |
 | 1 | `python3 /mnt/skills/public/pptx/scripts/office/validate.py out.pptx` | 통과(사용자 판 원본의 `revisionInfo` 경고는 그대로 둠) |
-| 2 | `python3 check_text.py out.pptx` | '글꼴·줄바꿈 통과', [기호] 0건 |
+| 2 | `python3 check_text.py out.pptx` | '글꼴·줄바꿈 통과', [기호] 0건, [정리] 0건(사용자 판은 고친 장 기준), [단어 끊김 방지] 미설정 0문단 |
 | 3 | `python3 check_clean.py out.pptx` | '깨끗함' |
 | 4 | `python3 compare_layout.py 기준.pptx out.pptx`(기준 덱이 있을 때) | 패턴과 행 수가 같으면 불일치 0. 단계 수가 기준 덱(3단계)과 다르면 흐름 헤더 도형은 불일치로 나오는 것이 정상 |
 | 5 | `soffice.py --headless --convert-to pdf` → `pdftoppm -jpeg -r 80` | 전 장을 눈으로 확인(아래 항목) |

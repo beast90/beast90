@@ -1,4 +1,4 @@
-"""edit_lib.py — 개조식 변환 · 글머리 「- 」 · 나열 묶음 줄바꿈 · 들여쓰기 · [[ ]] 빨강(#FF0000) 유지 글 넣기 (mgc-ppt-template v5.3, references/text-fit.md 「묶어 나누지 않는 말」)"""
+"""edit_lib.py — 개조식 변환 · 글머리 「- 」 · 나열 묶음 줄바꿈 · 들여쓰기 · [[ ]] 빨강(#FF0000) 유지 글 넣기 (mgc-ppt-template v5.4, references/text-fit.md 「묶어 나누지 않는 말」)"""
 import copy, re
 from pptx.util import Inches, Pt, Emu
 from pptx.oxml.ns import qn
@@ -6,7 +6,7 @@ import pptx_edit as PE
 
 BULLET = '- '          # 정보 단위 글머리: references/writing.md 「기호」
 RED = 'FF0000'; INK = '2E241D'   # 강조 빨강 단일 값: references/writing.md 「강조」(이전 값은 먼저 PE.fix_colors로 정리)
-SLACK = 0.82           # 줄바꿈 폭 보정: references/text-fit.md 「폭 추정 · 보정 값」
+SLACK = PE.SLACK       # 줄바꿈 폭 보정(pptx_edit와 같은 값): references/text-fit.md 「폭 추정 · 보정 값」
 
 _em0 = PE.em
 def em(ch, bold):
@@ -47,7 +47,7 @@ def wrap(par, w_in, size, bold=False):
     for g in GLUE: glued = glued.replace(g, g.replace(' ', '\u00a0'))
     plain = glued.replace('확인\u00a0필요', '확인 필요').replace('검토\u00a0필요', '검토 필요')   # GLUE가 묶은 「확인 필요」를 풀어 태그 전체를 찾는다
     tagged = TAG_RE.sub(lambda m: m.group(0).replace(' ', '\u00a0'), plain)
-    avail = w_in * 72 * SLACK - 1.5
+    avail = w_in * 72 * SLACK
     out = _wrap(tagged, w_in, size, bold)
     if any(wpt(o, size, bold) > avail for o in out):   # 태그가 한 줄보다 길면 태그 안에서만 나눈다
         out = _wrap(glued, w_in, size, bold)
@@ -56,7 +56,7 @@ def _wrap(par, w_in, size, bold=False):
     """한 정보(한 문단)를 칸 폭에 맞춰 줄로 나눈다. 반환: [첫 줄, 이어지는 줄...]
     나열만으로 된 정보(예: 「정책(12~23) · 화면(25~31) · 예외(59~64)」)는 줄 경계의 「·」를 빼고,
     문장 속 나열이 한 줄을 넘으면 「·」를 줄 끝에 남긴다"""
-    avail = w_in * 72 * SLACK - 1.5
+    avail = w_in * 72 * SLACK
     lead = BULLET if par.startswith(BULLET) else ''
     body = par[len(lead):]
     ind = wpt(lead, size, bold)
@@ -186,6 +186,7 @@ def set_items(tf, items, w_in, size=None, bold=None, plain_color=INK):
             for r in np_.findall(qn('a:r')) + np_.findall(qn('a:br')) + np_.findall(qn('a:fld')): np_.remove(r)
             ppr = np_.find(qn('a:pPr'))
             if ppr is None: ppr = np_.makeelement(qn('a:pPr'), {}); np_.insert(0, ppr)
+            ppr.set('eaLnBrk', '0')   # 단어 끊김 방지
             if li > 0 and it.startswith(BULLET):
                 ppr.set('marL', str(int(wpt(BULLET, size, bold) * 12700))); ppr.set('indent', '0')
             else:
