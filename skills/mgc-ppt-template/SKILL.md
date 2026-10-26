@@ -3,7 +3,7 @@ name: "mgc-ppt-template"
 description: "메가MGC커피向 PPT/프레젠테이션(가맹점 안내문, 사내 보고자료, 기능 중간 보고, 캠페인/이벤트 설명자료, 기능기획서/화면기획안/화면 흐름·요구사항 정의서/개발 연동 통합본·API 연동 정의서 등) 제작·수정 요청 시 적용 — 브랜드 컬러·폰트·슬라이드 구조를 표준화하고 문서 장르(안내문형 / 기능 보고형 / 간결 기획서형)로 분기. 기능 보고형은 번들 공통 코드(scripts/mgc_report.js)로 기준 개선본과 동일한 레이아웃을 재현. 메가커피·MGC 관련 발표자료·장표·슬라이드·보고 덱을 만들거나 고칠 때는 사용자가 '템플릿'을 언급하지 않아도 이 스킬을 먼저 읽는다"
 ---
 
-# 메가MGC커피 PPT 제작 표준 (v5.4, 2026-10-26)
+# 메가MGC커피 PPT 제작 표준 (v5.5, 2026-10-26)
 
 이 파일은 **읽기 지도**다. 규칙 본문은 `references/`에 주제별로 한 곳씩만 있다. 작업 유형에 맞는 파일만 읽는다.
 
@@ -21,7 +21,7 @@ description: "메가MGC커피向 PPT/프레젠테이션(가맹점 안내문, 사
 | 새 덱: 간결 기획서형 | `references/genre-slim-spec.md` | `references/design-common.md` · `references/writing.md` · `references/text-fit.md` |
 | 흐름도 장이 있는 덱 | `references/flowchart.md` | 간결 기획서형 파일 |
 | 개발 연동 통합본 · API 연동 정의서 | `references/integration-doc.md` | 간결 기획서형 파일 · `references/writing.md` |
-| 사용자가 다듬은 pptx 수정 · 전 장 확장 | `references/edit-user-pptx.md` | `references/writing.md` · `references/text-fit.md` |
+| 사용자가 다듬은 pptx 수정 · 전 장 확장 · 받은 덱 전체 정리 | `references/edit-user-pptx.md` | `references/writing.md` · `references/text-fit.md` |
 | 사용자에게 넘길 최종본 · 산출물 세트 | `references/final-deliverable.md` | `references/writing.md` |
 | 검수(모든 작업의 마지막) | `references/qa-checklist.md` | — |
 | 이 스킬 자체를 고칠 때 | 아래 「규칙 위치 지도」 | `skill-maintainer` 스킬 |
@@ -112,4 +112,5 @@ description: "메가MGC커피向 PPT/프레젠테이션(가맹점 안내문, 사
 | `format_pass.py` | 서식 일괄 적용: 빨강 FF0000 변환, 「- 」 열 판정(`include`) · 칸 앞 붙이기(`prefix_cell`), 빈 칸 가운데(`center_empty`), 요약 띠 라벨 굵게, 확인 태그 서술형(`tagfix`), 순서 번호(`number_chain`), 바뀐 표만 맞춤(`fit_tables`) | 사용자 수정 장을 전 장으로 넓힐 때 |
 | `gaejo_pass.py` | 손으로 고치지 않은 표 칸 · 설명 · 도식 글을 개조식 · 글머리로 일괄 정리하고, 바뀐 칸이 있는 표만 맞춤(이미 기준에 맞는 칸은 그대로) | 장별 수정을 끝낸 뒤 마지막에 한 번 |
 | `rename_pass.py` | 문단 단위 문구 치환(런 경계에 걸쳐도 서식 유지, pptx `A` · docx `W` 이름공간), 명칭 일괄 통일(`PG_RULES`), 표 행 높이를 문단 수로 다시 잡기(`tighten`) | 명칭 · 결정 문구를 모든 산출물에서 함께 바꿀 때 |
+| `tidy_tables.py` | 이미 만든 덱의 표 정리: 한 줄에 들어가는 「- 」 정보 합치기, 열 폭 재분배, 행 높이 맞춤(하단이 내려가면 되돌림) | 받은 덱을 기준대로 정리할 때 |
 | `move_remap.py` | 장 이동 + 쪽 번호 · 간지 목록 · 본문 장 참조 · 노트 · 목차 범위 재계산(다른 문서 장 번호 제외). 다른 영역으로 옮기면 간지 목록 항목도 옮김. 간지 자체는 옮기지 않음 | 보고 구조를 바꿔 장을 옮길 때 |

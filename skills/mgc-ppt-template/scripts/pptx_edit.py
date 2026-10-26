@@ -1,4 +1,4 @@
-"""pptx_edit.py — 사용자가 다듬은 pptx를 python-pptx로 직접 고칠 때 쓰는 도구 (mgc-ppt-template v5.4, references/edit-user-pptx.md)
+"""pptx_edit.py — 사용자가 다듬은 pptx를 python-pptx로 직접 고칠 때 쓰는 도구 (mgc-ppt-template v5.5, references/edit-user-pptx.md)
 
 from pptx_edit import *
 - 줄나눔: wrap(text, w_in, size, bold) — 칸 폭 기준 띄어쓰기 단위, '- ' 항목 이어지는 줄은 HANG 표시(쓸 때 문단 들여쓰기 marL로 바꿈, 공백 들여쓰기 없음)
@@ -42,7 +42,11 @@ def wrap(text, w_in, size, bold=False, slack=SLACK):
     hang_w = wpt('- ', size, bold)
     for par in str(text).split('\n'):
         hy = par.startswith('- '); cur = ''
-        for tok in par.split(' '):
+        toks = []
+        for tok in par.split(' '):   # 「·」는 앞 단어에 붙여 줄 머리에 오지 않게 한다(줄 끝 「·」는 허용)
+            if tok == '·' and toks: toks[-1] += ' ·'
+            else: toks.append(tok)
+        for tok in toks:
             cand = tok if cur == '' else cur + ' ' + tok
             w = wpt(re.sub(r'\[\[|\]\]', '', cand.lstrip(HANG)), size, bold) + (hang_w if cand.startswith(HANG) else 0)
             if cur != '' and w > avail:
@@ -86,14 +90,22 @@ def set_tf(tf, text, w_in=None, size=None, bold=None, nowrap=False):
     nonred = [r for r in allr if not _isred(r)]
     tmpl = copy.deepcopy(nonred[0] if nonred else allr[0])
     for p in ps: body.remove(p)
+    fixed, carry = [], False   # 빨강 [[ ]] 구간이 줄을 넘으면 줄마다 닫고 다시 연다
+    for ln in lines:
+        lead = HANG if ln.startswith(HANG) else ''; body_ = ln[len(lead):]
+        if carry: body_ = '[[' + body_
+        carry = body_.count('[[') > body_.count(']]')
+        if carry: body_ += ']]'
+        fixed.append(lead + body_.replace('[[]]', ''))
+    lines = fixed
     for ln in lines:
         np_ = copy.deepcopy(p0)
         for r in np_.findall(qn('a:r')) + np_.findall(qn('a:br')) + np_.findall(qn('a:fld')): np_.remove(r)
         end = np_.find(qn('a:endParaRPr'))
         ln = _hang(np_, ln, size)
-        for part in re.split(r'(\[\[.*?\]\])', ln):
+        for part in re.split(r'(\[\[.*?\]\](?!\]))', ln):   # 「[[[태그]]]」처럼 괄호까지 빨강인 구간 포함
             if not part: continue
-            red = part.startswith('[[')
+            red = part.startswith('[[') and part.endswith(']]')
             nr = copy.deepcopy(tmpl); nr.find(qn('a:t')).text = part[2:-2] if red else part
             if red:
                 rp = nr.find(qn('a:rPr')); rp.set('b', '1')

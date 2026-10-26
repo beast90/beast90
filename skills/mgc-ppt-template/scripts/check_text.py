@@ -1,4 +1,4 @@
-"""글꼴 · 줄 탈락 · 문장 줄바꿈 · 기호 검사 (mgc-ppt-template v5.4). 사용: python3 check_text.py out.pptx
+"""글꼴 · 줄 탈락 · 문장 줄바꿈 · 기호 검사 (mgc-ppt-template v5.5). 사용: python3 check_text.py out.pptx
 모든 pptx에 쓸 수 있다(기능 보고형, 안내문형, QA 수정 요청, 사용자가 손으로 고친 파일).
 1) 글꼴: 테마와 모든 글자가 맑은고딕인가
 2) 줄 탈락: 직접 넣은 줄(문단)마다 맑은고딕 추정 폭이 상자·표 칸 폭을 넘지 않는가
@@ -95,8 +95,8 @@ def tidy_cell(out, where, txBody, w_in):
             if not t.strip(): continue
             if t.startswith('- ') or not items: items.append([t, wd, 1])
             else: items[-1][0] += ' ' + t.strip(); items[-1][1] += wd + 0.3 * sz; items[-1][2] += 1
-    for t, wd, n in items:
-        if n > 1 and wd <= w_in * 72 * WRAP_SLACK:
+    for t, wd, n in items:   # 「- 」 정보만 본다(첫 열 이름 · 「번호 / 이름 / 호출명」처럼 일부러 나눈 칸은 제외)
+        if n > 1 and t.startswith('- ') and wd <= w_in * 72 * WRAP_SLACK:
             out.append(f'{where} [정리] 한 줄에 들어가는 정보가 {n}줄로 나뉨 — balance_cols · rewrap_table: {t[:40]!r}')
 
 def fonts_of(el):

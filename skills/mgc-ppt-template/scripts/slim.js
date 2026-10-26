@@ -1,4 +1,4 @@
-// slim.js — 간결 기획서형 부품 (mgc-ppt-template v5.1). 상단 흐름 헤더 · 장 구분 칩 · 순번 원 없는 골격
+// slim.js — 간결 기획서형 부품 (mgc-ppt-template v5.5). 상단 흐름 헤더 · 장 구분 칩 · 순번 원 없는 골격
 // 색 · 글꼴 · 줄맞춤은 references/design-common.md 토큰과 fit_text.js를 그대로 사용한다. 좌표 · 색 · 글자 크기는 고치지 않고 함수 인자로만 내용을 넣는다.
 const fs = require('fs');
 const pptxgen = require('pptxgenjs');
@@ -38,7 +38,7 @@ function rich(marked, fitted, extra) {
   });
   return runs;
 }
-const NEW_CELL = ['신규 개발'];   // badge-bg 대상: references/writing.md 「강조」
+const NEW_CELL = /^(?:[^·]+ · )?신규 개발(?:\(.*\))?$/;   // badge-bg 대상: 개발 구분 값이 「신규 개발」인 칸(references/writing.md 「강조」)
 const X0 = 0.6, W0 = 12.13;
 const ratio = p => { const b = fs.readFileSync(p); return b.readUInt32BE(16) / b.readUInt32BE(20); };
 
@@ -123,7 +123,7 @@ function deck(title) {
       const f = fit(strip(raw), { w: colW[j] - 0.24, h: rh[i] - 0.1, size: c.options.fontSize, bold: !!c.options.bold, name: `표 ${i + 1}행 ${j + 1}열` });
       if (f.charSpacing) c.options.charSpacing = f.charSpacing;
       c.text = rich(raw, f.text, f.charSpacing ? { charSpacing: f.charSpacing } : null);
-      if (!isHead && NEW_CELL.indexOf(strip(raw)) >= 0) { c.options.fill = { color: C.newCell }; c.options.bold = true; }
+      if (!isHead && NEW_CELL.test(strip(raw))) { c.options.fill = { color: C.newCell }; c.options.bold = true; }
       if (align && align[j]) c.options.align = align[j];   // 숫자 열은 'right'
     }));
     s.addTable(data, { x, y, w: colW.reduce((a, v) => a + v, 0), colW, rowH: rh, border: { type: 'solid', pt: 0.75, color: C.beige }, objectName: '표' });
