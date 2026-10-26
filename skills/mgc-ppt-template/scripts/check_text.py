@@ -1,4 +1,4 @@
-"""글꼴 · 줄 탈락 · 문장 줄바꿈 · 기호 검사 (mgc-ppt-template v4.1). 사용: python3 check_text.py out.pptx
+"""글꼴 · 줄 탈락 · 문장 줄바꿈 · 기호 검사 (mgc-ppt-template v4.2). 사용: python3 check_text.py out.pptx
 모든 pptx에 쓸 수 있다(기능 보고형, 안내문형, QA 수정 요청, 사용자가 손으로 고친 파일).
 1) 글꼴: 테마와 모든 글자가 맑은고딕인가
 2) 줄 탈락: 직접 넣은 줄(문단)마다 맑은고딕 추정 폭이 상자·표 칸 폭을 넘지 않는가
@@ -6,7 +6,7 @@
 3) 줄 수: 줄 수 × 글자 크기 × 1.3이 상자·행 높이를 넘지 않는가
 4) 문장 줄바꿈: 한 줄 안에서 온점(.)으로 문장이 끝난 뒤 다음 문장이 이어지지 않는가
    (숫자 1.5, 약어 B.O, 날짜 2026.10.15는 해당 없음)
-5) 기호(v4.1): 글머리 「- 」(→ 「• 」), 제목 · 영역 이름 구분 「 — 」(→ 괄호), 줄 머리 「·」. 줄 끝 「·」는 [참고]로만 알린다(문장 속 긴 나열 예외)
+5) 기호(v4.2): 글머리 「• 」(→ 「- 」), 제목 · 영역 이름 구분 「 — 」(→ 괄호), 줄 머리 「·」. 줄 끝 「·」는 [참고]로만 알린다(문장 속 긴 나열 예외)
 글자 폭은 fit_text.js와 같은 맑은고딕 추정표, 여유 3%. 문제 0건이면 '글꼴·줄바꿈 통과'"""
 import sys, re, zipfile
 from pptx import Presentation
@@ -74,8 +74,8 @@ def check_box(out, where, txBody, w_in, h_in, wrap=True):
             if SENT.search(t):
                 out.append(f'{where} [문장 줄바꿈] 한 줄에 문장이 이어짐: {t!r}')
             st = t.strip()
-            if st.startswith('- '):
-                out.append(f'{where} [기호] 글머리는 「• 」: {t!r}')
+            if st.startswith('•'):
+                out.append(f'{where} [기호] 글머리는 「- 」: {t!r}')
             if ' — ' in st:
                 out.append(f'{where} [기호] 「 — 」 구분 대신 괄호 · 「: 」: {t!r}')
             if st.startswith('·'):

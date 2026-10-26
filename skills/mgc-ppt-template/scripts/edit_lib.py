@@ -1,11 +1,11 @@
-"""edit_lib.py — 개조식 변환 · 글머리 기호 · 나열 묶음 줄바꿈 · 들여쓰기 · 장 번호 재매핑 (mgc-ppt-template v4.1)"""
+"""edit_lib.py — 개조식 변환 · 글머리 「- 」 · 나열 묶음 줄바꿈 · 들여쓰기 · [[ ]] 빨강(#FF0000) 유지 글 넣기 (mgc-ppt-template v4.2)"""
 import copy, re
 from pptx.util import Inches, Pt, Emu
 from pptx.oxml.ns import qn
 import pptx_edit as PE
 
-BULLET = '• '          # 목록 글머리: U+2022 + 공백 (나열 구분 「·」, 범위 「~」, 빈 칸 「—」과 구분)
-RED = 'F53148'; INK = '2E241D'
+BULLET = '- '          # 정보 단위 글머리(v4.2, 사용자 지시 2026-10-26): 표 칸은 항목이 1개여도 「- 」로 시작
+RED = 'FF0000'; INK = '2E241D'   # 강조 빨강(v4.2): 기본 빨강 #FF0000
 SLACK = 0.82           # PowerPoint 실측 보정: 0.88에서 「변경하 / 기」처럼 단어가 잘린 사례(2026-10-26)
 
 _em0 = PE.em
@@ -125,8 +125,8 @@ def items_of(tf):
         raw = ln
         s = ln.strip()
         if not s: continue
-        is_head = s.startswith('- ') or s.startswith(BULLET) or s.startswith('※')
-        if s.startswith('- '): s = BULLET + s[2:]
+        is_head = s.startswith(('- ', '• ', '※'))
+        if s.startswith('• '): s = BULLET + s[2:]
         cont = (raw.startswith('  ') or not is_head)
         if out and cont and not out[-1].endswith('.') and not out[-1].endswith(']]'):
             out[-1] = out[-1] + ('' if out[-1].endswith(('(', '/')) else ' ') + s
@@ -163,6 +163,7 @@ def set_items(tf, items, w_in, size=None, bold=None, plain_color=INK):
     for p in ps: body.remove(p)
     n = 0
     for it in items:
+        if it.startswith('[[- '): it = '- [[' + it[4:]
         lines = wrap(it, w_in, size, bold) if w_in else [it]
         fixed, carry = [], False
         for ln in lines:
@@ -184,7 +185,7 @@ def set_items(tf, items, w_in, size=None, bold=None, plain_color=INK):
                     if k in ppr.attrib: del ppr.attrib[k]
             end = np_.find(qn('a:endParaRPr'))
             red_open = False
-            for part in re.split(r'(\[\[.*?\]\])', ln):
+            for part in re.split(r'(\[\[.*?\]\](?!\]))', ln):   # 「[[[태그]]]」처럼 괄호까지 빨강인 경우 포함
                 if not part: continue
                 red = part.startswith('[[') and part.endswith(']]')
                 nr = copy.deepcopy(tmpl); nr.find(qn('a:t')).text = part[2:-2] if red else part
