@@ -27,10 +27,10 @@ def pg_unify(root, ns):
     return n
 
 def tighten(sh, size=10.5, top_in=None):
-    """표 행 높이를 문단 수 × 글자 크기 × 1.2 + 0.12in로 다시 잡는다(줄 수 추정 과대로 하단 각주와 겹칠 때)"""
+    """표 행 높이를 문단 수 × 글자 크기 × 1.3 + 0.1in로 다시 잡는다(줄 수 추정 과대로 하단 각주와 겹칠 때)"""
     from pptx.util import Inches
     if top_in: sh.top = Inches(top_in)
     for row in sh.table.rows:
         n = max(len(c.text_frame.paragraphs) for c in row.cells)
-        row.height = Inches(max(0.30, n * size * 1.2 / 72 + 0.12))
+        row.height = Inches(max(0.30, n * size * 1.3 / 72 + 0.1))
     return round((sh.top + sum(r.height for r in sh.table.rows)) / 914400, 2)
