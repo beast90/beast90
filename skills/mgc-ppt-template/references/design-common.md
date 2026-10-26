@@ -41,8 +41,8 @@
 
 | 장르 | 만드는 함수 | 배경 | 문서 종류 | 제목 · 영역 이름 | 부제 · 간지 설명 | 날짜 줄 · 간지 목록 · 간지 쪽 번호 | 간지 구분선 |
 |---|---|---|---|---|---|---|---|
-| 간결 기획서형 · 연동 문서 | `cover()` · `divider()`(`slim.js`), 간지 목록 `kit.js` | cover-black 000000 | brand-yellow | white | on-dark-sub F2F2F2 | on-dark-meta D9D9D9 | dark-rule 595959 0.75pt |
-| 기능 보고형 · 안내문형 | `addCover()`(`mgc_report.js`, 고정 코드) | doc-bg-800 3B2A20 | brand-yellow | white | `mgc_report.js` 값 | `mgc_report.js` 값 | (간지 없음) |
+| 간결 기획서형 · 연동 문서 | `cover()` · `divider()`(`slim.js`), 간지 목록 `kit.js` | cover-black | brand-yellow | white | on-dark-sub | on-dark-meta | dark-rule 0.75pt |
+| 기능 보고형 · 안내문형 | `addCover()`(`mgc_report.js`, 고정 코드) | doc-bg-800 | brand-yellow | white | `mgc_report.js` 값 | `mgc_report.js` 값 | (간지 없음) |
 
 - 간결 기획서형 색은 「앱카드 연동 통합본 v0.26」 사용자 수정본(간지 10장 중 9장)과 같다.
 
@@ -55,7 +55,7 @@
 | brand-yellow | `FFDE00` | 기능 보고형: 슬라이드당 1곳(흐름 박스 · 단계 카드의 결과 단계, 흐름 헤더 활성 단계의 시점 글씨, 노랑 카드 안 순번 숫자). 간결 기획서형: 표지 문서 종류 글씨만 |
 | brand-black | `000000` | 안내문형 CTA 버튼 글씨 전용 |
 | cover-black | `000000` | 간결 기획서형 표지 · 간지 배경 전용(brand-black과 같은 값, 의미 분리) |
-| on-dark-sub | `F2F2F2` | 간결 기획서형 표지 부제 · 간지 설명 |
+| on-dark-sub | `F2F2F2` | 간결 기획서형 표지 부제 · 간지 설명(쓰는 곳은 「깔끔한 장표」 표) |
 | on-dark-meta | `D9D9D9` | 간결 기획서형 표지 날짜 · 부서 줄, 간지 장 목록, 간지 쪽 번호 |
 | dark-rule | `595959` | 간결 기획서형 간지 구분선 0.75pt |
 | doc-bg-900 | `2E241D` | 제목 · 본문 · 표 글씨 |

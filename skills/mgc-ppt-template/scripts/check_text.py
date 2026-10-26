@@ -1,4 +1,4 @@
-"""글꼴 · 줄 탈락 · 문장 줄바꿈 검사 (mgc-ppt-template v3.4). 사용: python3 check_text.py out.pptx
+"""글꼴 · 줄 탈락 · 문장 줄바꿈 · 기호 검사 (mgc-ppt-template v5.2). 사용: python3 check_text.py out.pptx
 모든 pptx에 쓸 수 있다(기능 보고형, 안내문형, QA 수정 요청, 사용자가 손으로 고친 파일).
 1) 글꼴: 테마와 모든 글자가 맑은고딕인가
 2) 줄 탈락: 직접 넣은 줄(문단)마다 맑은고딕 추정 폭이 상자·표 칸 폭을 넘지 않는가
@@ -6,6 +6,8 @@
 3) 줄 수: 줄 수 × 글자 크기 × 1.3이 상자·행 높이를 넘지 않는가
 4) 문장 줄바꿈: 한 줄 안에서 온점(.)으로 문장이 끝난 뒤 다음 문장이 이어지지 않는가
    (숫자 1.5, 약어 B.O, 날짜 2026.10.15는 해당 없음)
+5) 기호(references/writing.md 「기호」): 「•」 · 「–」 글머리, 문장 속 「 — 」 구분, 줄 머리 「·」는 [기호],
+   줄 끝 「·」는 [참고](문장 속 긴 나열인지 눈으로 확인, 통과 판정에는 넣지 않음)
 글자 폭은 fit_text.js와 같은 맑은고딕 추정표, 여유 3%. 문제 0건이면 '글꼴·줄바꿈 통과'"""
 import sys, re, zipfile
 from pptx import Presentation
@@ -69,6 +71,11 @@ def check_box(out, where, txBody, w_in, h_in, wrap=True):
                 out.append(f'{where} [줄 탈락] 폭 {wd/72:.2f}in > {w_in*SAFE:.2f}in (약 {max(1, round(over + 0.49))}자 초과): {t!r}')
             if SENT.search(t):
                 out.append(f'{where} [문장 줄바꿈] 한 줄에 문장이 이어짐: {t!r}')
+            s_ = t.strip()
+            if '•' in t or '–' in t: SYM.append(f'{where} [기호] 「•」 · 「–」 대신 「- 」: {t!r}')
+            if ' — ' in t: SYM.append(f'{where} [기호] 문장 속 「 — 」 구분: {t!r}')
+            if s_.startswith('·'): SYM.append(f'{where} [기호] 줄 머리 「·」: {t!r}')
+            if s_.endswith('·'): NOTE.append(f'{where} [참고] 줄 끝 「·」: {t!r}')
     if h_in is not None and height > h_in * 1.05 and n_lines > 1:
         out.append(f'{where} [줄 수 초과] {n_lines}줄 ({height:.2f}in) > 높이 {h_in:.2f}in')
 
@@ -87,6 +94,7 @@ def emu_in(v): return Emu(v).inches if v is not None else 0.0
 
 path = sys.argv[1]
 font_bad, wrap_bad = [], []
+SYM, NOTE = [], []
 z = zipfile.ZipFile(path)
 x = z.read('ppt/theme/theme1.xml').decode('utf8') if 'ppt/theme/theme1.xml' in z.namelist() else ''
 for kind in ('majorFont', 'minorFont'):
@@ -117,5 +125,6 @@ for i, s in enumerate(p.slides, 1):
                     h = emu_in(row.height) - emu_in(c.margin_top) - emu_in(c.margin_bottom)
                     check_box(wrap_bad, f'{i}장 [{sh.name} {ri + 1}행 {ci + 1}열]', c._tc.txBody, w, h)
 
-for m in font_bad + wrap_bad: print(m)
+for m in font_bad + wrap_bad + SYM + NOTE: print(m)
 print('글꼴·줄바꿈 통과' if not (font_bad or wrap_bad) else f'글꼴 {len(font_bad)}건, 줄바꿈 {len(wrap_bad)}건')
+print(f'[기호] {len(SYM)}건' + (f' · [참고] {len(NOTE)}건' if NOTE else ''))

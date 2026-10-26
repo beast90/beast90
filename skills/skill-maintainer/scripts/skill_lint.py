@@ -18,6 +18,7 @@
   [참고]
    11. 규칙 본문 속 버전 꼬리표 「(v3.8 …)」 개수 — 이력은 CHANGELOG.md 로 옮긴다
    12. 절 구성: 제목 깊이 · 절마다 줄 수 상위
+  [경고] 추가: 번호 제목(「## 3. …」), 절 번호 지칭(「아래 5장」 · 「(5장)」 · 「4-1의 」)
 
 설정(lint.json, 없으면 기본값):
 {
@@ -332,6 +333,16 @@ def main():
             sizes.append((end - i, k, t))
     sizes.sort(reverse=True)
     I.append(('-', '-', '긴 절 상위: ' + ', '.join(f'{k} 「{t[:20]}」 {n}줄' for n, k, t in sizes[:6])))
+    for k, hs in heads.items():
+        if os.path.basename(k) in hist: continue
+        for i, lv, t in hs:
+            if lv >= 2 and re.match(r'^\d+(?:-\d+)?\.\s', t):
+                W.append((k, i, f'번호 제목 「{t[:30]}」 — 번호를 빼고 제목으로 가리킬 것'))
+    SELF_REF = re.compile(r'(?:아래|위|이 파일|SKILL\.md)\s*\d+장|\(\d+장(?: 형식)?\)|(?<![\d.-])\d+-\d+(?:의|로|에서)\s')
+    for k, txt in rule_docs.items():
+        for i, line in enumerate(strip_code(txt).split('\n'), 1):
+            m = SELF_REF.search(line)
+            if m: W.append((k, i, f'절 번호 지칭 「{m.group(0).strip()}」 — 「제목」으로 가리킬 것'))
     deep = [(k, t) for k, hs in heads.items() for _, lv, t in hs if lv >= 5]
     if deep:
         I.append(('-', '-', f'제목 깊이 5 이상 {len(deep)}개 — 위계를 3단(##/###/####) 이내로'))

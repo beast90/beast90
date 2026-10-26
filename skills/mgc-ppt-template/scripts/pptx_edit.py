@@ -1,7 +1,7 @@
-"""pptx_edit.py — 사용자가 다듬은 pptx를 python-pptx로 직접 고칠 때 쓰는 도구 (mgc-ppt-template v5.1, references/edit-user-pptx.md)
+"""pptx_edit.py — 사용자가 다듬은 pptx를 python-pptx로 직접 고칠 때 쓰는 도구 (mgc-ppt-template v5.2, references/edit-user-pptx.md)
 
 from pptx_edit import *
-- 줄나눔: wrap(text, w_in, size, bold) — 칸 폭 기준 띄어쓰기 단위, '- ' 항목 이어지는 줄은 두 칸 들여쓰기
+- 줄나눔: wrap(text, w_in, size, bold) — 칸 폭 기준 띄어쓰기 단위, '- ' 항목 이어지는 줄은 HANG 표시(쓸 때 문단 들여쓰기 marL로 바꿈, 공백 들여쓰기 없음)
 - 글: set_tf(tf, text, w_in, nowrap) — 빨강이 아닌 첫 런 서식을 원본으로 문단 재구성, [[문구]]는 빨강 굵게
 - 표: set_cell · fit_rows · del_row · add_col · del_col · tbl · bottom
 - 도형: textbox · box · arrow (맑은 고딕, 정보 도형만)
@@ -33,17 +33,30 @@ def em(ch, bold):
     if ch == '-': return 0.38
     return 0.92
 def wpt(s, size, bold): return sum(em(c, bold) * size for c in s)
+HANG = '\x01'   # 「- 」 항목의 이어지는 줄 표시: 문단 들여쓰기(marL)로 그림
 def wrap(text, w_in, size, bold=False, slack=0.82):
     avail = w_in * 72 * slack - 1.5; out = []
+    hang_w = wpt('- ', size, bold)
     for par in str(text).split('\n'):
         hy = par.startswith('- '); cur = ''
         for tok in par.split(' '):
             cand = tok if cur == '' else cur + ' ' + tok
-            if cur != '' and wpt(re.sub(r'\[\[|\]\]', '', cand), size, bold) > avail:
-                out.append(cur); cur = ('  ' if hy else '') + tok
+            w = wpt(re.sub(r'\[\[|\]\]', '', cand.lstrip(HANG)), size, bold) + (hang_w if cand.startswith(HANG) else 0)
+            if cur != '' and w > avail:
+                out.append(cur); cur = (HANG if hy else '') + tok
             else: cur = cand
         out.append(cur)
     return out
+def _hang(p_el, ln, size):
+    """「- 」 줄은 내어쓰기, 이어지는 줄은 같은 폭 들여쓰기. 반환: HANG을 뗀 글"""
+    pPr = p_el.find(qn('a:pPr'))
+    if ln.startswith('- ') or ln.startswith(HANG):
+        if pPr is None: pPr = p_el.makeelement(qn('a:pPr'), {}); p_el.insert(0, pPr)
+        m = str(int(round(wpt('- ', size, False) * 12700)))
+        pPr.set('marL', m); pPr.set('indent', '-' + m if ln.startswith('- ') else '0')
+    elif pPr is not None:
+        for k in ('marL', 'indent'): pPr.attrib.pop(k, None)
+    return ln.lstrip(HANG)
 
 RED = {'F53148', 'D32F2F', 'E03C31', 'C00000', 'FF0000'}   # 이전 값도 빨강 런으로 인식(쓸 때는 RED_HEX만)
 RED_HEX = 'FF0000'
@@ -70,6 +83,7 @@ def set_tf(tf, text, w_in=None, size=None, bold=None, nowrap=False):
         np_ = copy.deepcopy(p0)
         for r in np_.findall(qn('a:r')) + np_.findall(qn('a:br')) + np_.findall(qn('a:fld')): np_.remove(r)
         end = np_.find(qn('a:endParaRPr'))
+        ln = _hang(np_, ln, size)
         for part in re.split(r'(\[\[.*?\]\])', ln):
             if not part: continue
             red = part.startswith('[[')
@@ -138,6 +152,7 @@ def textbox(s, x, y, w, h, lines, size=11, color=INK, bold=False, align=PP_ALIGN
     for m in ('margin_left', 'margin_right', 'margin_top', 'margin_bottom'): setattr(tf, m, 0)
     for i, ln in enumerate(out):
         pa = tf.paragraphs[0] if i == 0 else tf.add_paragraph(); pa.alignment = align
+        ln = _hang(pa._p, ln, size)
         _font(pa.add_run(), size, bold, color); pa.runs[0].text = ln
     tb.height = Inches(len(out) * size * 1.3 / 72 + 0.04)
     return tb
